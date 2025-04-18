@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Stopwatch</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            background-color: #FF9900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .header-logo {
+            max-width: 320px;
+        }
+        
+        .stopwatches-wrapper {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+        
+        .stopwatch-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: auto;
+            min-width: 0;
+        }
+        
+        .stopwatch-container:first-child {
+            background-color: #e6f7ff;
+            border-right: 2px solid #333;
+        }
+        
+        .stopwatch-container:last-child {
+            background-color: #fff0f0;
+        }
+        
+        .stopwatch-display {
+            font-size: 7rem;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            min-width: 300px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: visible;
+        }
+        
+        .stopwatch-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.reset {
+            background-color: #f44336;
+        }
+        
+        button.reset:hover {
+            background-color: #d32f2f;
+        }
+        
+        button.pause {
+            background-color: #ff9800;
+        }
+        
+        button.pause:hover {
+            background-color: #fb8c00;
+        }
+        
+        .lap-times {
+            max-height: 200px;
+            overflow-y: auto;
+            width: 80%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: white;
+        }
+        
+        .lap-time {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .lap-time:last-child {
+            border-bottom: none;
+        }
+        
+        .stopwatch-label {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="continental.png" alt="Continental Logo" class="header-logo">
+    </div>
+
+    <div class="stopwatches-wrapper">
+        <div class="stopwatch-container" id="stopwatch-left">
+            <h2 class="stopwatch-label">100 KN SIDE</h2>
+            <div class="stopwatch-display" id="display-left">00:00.00</div>
+            <div class="stopwatch-controls">
+                <button id="start-left">Start</button>
+                <button class="pause" id="pause-left">Pause</button>
+                <button class="reset" id="reset-left">Reset</button>
+                <button id="lap-left">Lap</button>
+            </div>
+            <div class="lap-times" id="laps-left">
+                <div class="lap-time">Lap times will appear here</div>
+            </div>
+        </div>
+        
+        <div class="stopwatch-container" id="stopwatch-right">
+            <h2 class="stopwatch-label">200 KN SIDE</h2>
+            <div class="stopwatch-display" id="display-right">00:00.00</div>
+            <div class="stopwatch-controls">
+                <button id="start-right">Start</button>
+                <button class="pause" id="pause-right">Pause</button>
+                <button class="reset" id="reset-right">Reset</button>
+                <button id="lap-right">Lap</button>
+            </div>
+            <div class="lap-times" id="laps-right">
+                <div class="lap-time">Lap times will appear here</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Test Center - Kalutara</p>
+        <p>© 2025 All Rights Reserved | Designed By Ravindu Dinshan</p>
+    </div>
+
+    <script>
+        class Stopwatch {
+            constructor(displayId, startId, pauseId, resetId, lapId, lapsId) {
+                // DOM elements
+                this.displayElement = document.getElementById(displayId);
+                this.startButton = document.getElementById(startId);
+                this.pauseButton = document.getElementById(pauseId);
+                this.resetButton = document.getElementById(resetId);
+                this.lapButton = document.getElementById(lapId);
+                this.lapsContainer = document.getElementById(lapsId);
+                
+                // Stopwatch state
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.lastLapTime = 0;
+                this.isRunning = false;
+                this.timerId = null;
+                this.lapCount = 0;
+                
+                // Initialize display
+                this.updateDisplay();
+                this.resetLaps();
+                
+                // Add event listeners
+                this.startButton.addEventListener('click', () => this.start());
+                this.pauseButton.addEventListener('click', () => this.pause());
+                this.resetButton.addEventListener('click', () => this.reset());
+                this.lapButton.addEventListener('click', () => this.lap());
+            }
+            
+            formatTime(milliseconds) {
+                const ms = Math.floor((milliseconds % 1000) / 10);
+                const seconds = Math.floor((milliseconds / 1000) % 60);
+                const minutes = Math.floor((milliseconds / (1000 * 60)) % 60);
+                const hours = Math.floor(milliseconds / (1000 * 60 * 60));
+                
+                const formattedHours = hours > 0 ? `${hours.toString().padStart(2, '0')}:` : '';
+                const formattedMinutes = minutes.toString().padStart(2, '0');
+                const formattedSeconds = seconds.toString().padStart(2, '0');
+                const formattedMs = ms.toString().padStart(2, '0');
+                
+                return `${formattedHours}${formattedMinutes}:${formattedSeconds}.${formattedMs}`;
+            }
+            
+            updateDisplay() {
+                this.displayElement.textContent = this.formatTime(this.elapsedTime);
+            }
+            
+            start() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.startTime = Date.now() - this.elapsedTime;
+                
+                this.timerId = setInterval(() => {
+                    this.elapsedTime = Date.now() - this.startTime;
+                    this.updateDisplay();
+                }, 10); // Update every 10ms for smooth display
+            }
+            
+            pause() {
+                if (!this.isRunning) return;
+                
+                clearInterval(this.timerId);
+                this.isRunning = false;
+            }
+            
+            reset() {
+                this.pause();
+                this.elapsedTime = 0;
+                this.lastLapTime = 0;
+                this.lapCount = 0;
+                this.updateDisplay();
+                this.resetLaps();
+            }
+            
+            lap() {
+                if (!this.isRunning) return;
+                
+                this.lapCount++;
+                const lapTime = this.elapsedTime;
+                const lapSplit = lapTime - this.lastLapTime;
+                this.lastLapTime = lapTime;
+                
+                const lapElement = document.createElement('div');
+                lapElement.className = 'lap-time';
+                lapElement.innerHTML = `
+                    <span>Lap ${this.lapCount}</span>
+                    <span>${this.formatTime(lapSplit)}</span>
+                    <span>Total: ${this.formatTime(lapTime)}</span>
+                `;
+                
+                // Remove the placeholder message if it exists
+                if (this.lapCount === 1) {
+                    this.lapsContainer.innerHTML = '';
+                }
+                
+                this.lapsContainer.insertBefore(lapElement, this.lapsContainer.firstChild);
+            }
+            
+            resetLaps() {
+                this.lapsContainer.innerHTML = '<div class="lap-time">Lap times will appear here</div>';
+            }
+        }
+        
+        // Initialize both stopwatches
+        const stopwatchLeft = new Stopwatch(
+            'display-left', 'start-left', 'pause-left', 'reset-left', 'lap-left', 'laps-left'
+        );
+        
+        const stopwatchRight = new Stopwatch(
+            'display-right', 'start-right', 'pause-right', 'reset-right', 'lap-right', 'laps-right'
+        );
+
+        window.addEventListener('beforeunload', function(e) {
+            // Check if either stopwatch is running
+            if (stopwatchLeft.isRunning || stopwatchRight.isRunning) {
+                // Cancel the event (standard)
+                e.preventDefault();
+                // Chrome requires returnValue to be set
+                e.returnValue = 'A stopwatch is currently running. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        });
+    </script>
+</body>
+</html>
